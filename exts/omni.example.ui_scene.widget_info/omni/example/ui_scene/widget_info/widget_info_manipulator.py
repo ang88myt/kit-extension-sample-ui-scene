@@ -11,6 +11,9 @@ __all__ = ["WidgetInfoManipulator"]
 from omni.ui import color as cl
 from omni.ui import scene as sc
 import omni.ui as ui
+import carb
+from pxr import Gf
+from my_company.my_python_ui_extension.data_service import DataService  # Importing DataService from your extension
 
 
 class _ViewportLegacyDisableSelection:
@@ -73,16 +76,24 @@ class _DragGesture(sc.DragGesture):
 
 
 class WidgetInfoManipulator(sc.Manipulator):
+    
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-
+        
         self.destroy()
-
+        self._data_service = DataService()
         self._radius = 2
         self._distance_to_top = 5
         self._thickness = 2
         self._radius_hovered = 20
-
+        self._data_service = DataService()
+        self.info_text = ""
+        
+    def on_startup(self, ext_id):
+        self._build_widgets()
+    
+   
+                    
     def destroy(self):
         self._root = None
         self._slider_subscription = None
@@ -90,6 +101,7 @@ class WidgetInfoManipulator(sc.Manipulator):
         self._name_label = None
 
     def _on_build_widgets(self):
+        
         with ui.ZStack():
             ui.Rectangle(
                 style={
@@ -99,7 +111,7 @@ class WidgetInfoManipulator(sc.Manipulator):
                     "border_radius": 4,
                 }
             )
-            with ui.VStack(style={"font_size": 24}):
+            with ui.VStack(style={"font_size": 30}):
                 ui.Spacer(height=4)
                 with ui.ZStack(style={"margin": 1}, height=30):
                     ui.Rectangle(
@@ -108,23 +120,23 @@ class WidgetInfoManipulator(sc.Manipulator):
                         }
                     )
                     ui.Line(style={"color": cl(0.7), "border_width": 2}, alignment=ui.Alignment.BOTTOM)
-                    ui.Label("Hello world, I am a scene.Widget!", height=0, alignment=ui.Alignment.CENTER)
+                    ui.Label("Stock Information", height=0, alignment=ui.Alignment.CENTER)
 
-                ui.Spacer(height=4)
-                self._name_label = ui.Label("", height=0, alignment=ui.Alignment.CENTER)
+                ui.Spacer(height=10)
+                self._name_label = ui.Label("", height=0, alignment=ui.Alignment.LEFT)
 
                 # setup some model, just for simple demonstration here
                 self._slider_model = ui.SimpleFloatModel()
 
-                ui.Spacer(height=10)
-                with ui.HStack():
-                    ui.Spacer(width=10)
-                    ui.Label("scale", height=0, width=0)
-                    ui.Spacer(width=5)
-                    ui.FloatSlider(self._slider_model)
-                    ui.Spacer(width=10)
-                ui.Spacer(height=4)
-                ui.Spacer()
+                # ui.Spacer(height=10)
+                # with ui.HStack():
+                #     ui.Spacer(width=10)
+                #     ui.Label("scale", height=0, width=0)
+                #     ui.Spacer(width=5)
+                #     ui.FloatSlider(self._slider_model)
+                #     ui.Spacer(width=10)
+                # ui.Spacer(height=4)
+                # ui.Spacer()
 
         self.on_model_updated(None)
 
@@ -132,14 +144,16 @@ class WidgetInfoManipulator(sc.Manipulator):
         self._widget.gestures += [_DragGesture()]
 
     def on_build(self):
+        self.endpoint_field = "UINT0000036621"
+        
         """Called when the model is chenged and rebuilds the whole slider"""
         self._root = sc.Transform(visible=False)
         with self._root:
             with sc.Transform(scale_to=sc.Space.SCREEN):
-                with sc.Transform(transform=sc.Matrix44.get_translation_matrix(0, 100, 0)):
+                with sc.Transform(transform=sc.Matrix44.get_translation_matrix(600, 100, 0)):
                     # Label
                     with sc.Transform(look_at=sc.Transform.LookAt.CAMERA):
-                        self._widget = sc.Widget(500, 150, update_policy=sc.Widget.UpdatePolicy.ON_MOUSE_HOVERED)
+                        self._widget = sc.Widget(850, 450, update_policy=sc.Widget.UpdatePolicy.ON_MOUSE_HOVERED)
                         self._widget.frame.set_build_fn(self._on_build_widgets)
 
     def on_model_updated(self, _):
@@ -148,22 +162,43 @@ class WidgetInfoManipulator(sc.Manipulator):
             self._root.visible = False
             return
 
+        selected_object = self.model.get_item("name")
+        if selected_object:
+            selected_object = selected_object.split('/')[-1]
+
+        if not selected_object:
+            self._root.visible = False
+            return
+
+        endpoint = f"pallet/{selected_object}/"
+        print(f"Fetching stock info from endpoint: {endpoint}")
+
+        stock_info = self._data_service.fetch_stock_info(endpoint)
+
+        if stock_info:
+            limited_items = list(stock_info.items())[:11]
+            self.info_text = "\n".join([f"{key}: {value}" for key, value in limited_items])
+            print(self.info_text)  # Assuming you want to use it somehow; replace this line accordingly.
+
         # Update the shapes
         position = self.model.get_as_floats(self.model.get_item("position"))
-        self._root.transform = sc.Matrix44.get_translation_matrix(*position)
-        self._root.visible = True
+        if position:
+            self._root.transform = sc.Matrix44.get_translation_matrix(*position)
+            self._root.visible = True
+        else:
+            self._root.visible = False
 
         # Update the slider
-        def update_scale(prim_name, value):
-            print(f"changing scale of {prim_name}, {value}")
+        # def update_scale(prim_name, value):
+            # print(f"changing scale of {prim_name}, {value}")
 
-        if self._slider_model:
-            self._slider_subscription = None
-            self._slider_model.as_float = 1.0
-            self._slider_subscription = self._slider_model.subscribe_value_changed_fn(
-                lambda m, p=self.model.get_item("name"): update_scale(p, m.as_float)
-            )
+        # if self._slider_model:
+        #     self._slider_subscription = None
+        #     self._slider_model.as_float = 1.0
+        #     self._slider_subscription = self._slider_model.subscribe_value_changed_fn(
+        #         lambda m, p=self.model.get_item("name"): update_scale(p, m.as_float)
+        #     )
 
         # Update the shape name
         if self._name_label:
-            self._name_label.text = f"Prim:{self.model.get_item('name')}"
+            self._name_label.text = self.info_text

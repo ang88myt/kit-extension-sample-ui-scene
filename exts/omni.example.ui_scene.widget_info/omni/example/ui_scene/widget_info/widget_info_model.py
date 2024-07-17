@@ -129,7 +129,7 @@ class WidgetInfoModel(sc.AbstractManipulatorModel):
 
         prim = stage.GetPrimAtPath(prim_paths[0])
 
-        if prim.IsA(UsdLux.Light):
+        if prim.IsA(UsdLux.LightAPI):
             print("Light")
             self.material_name = "I am a Light"
         elif prim.IsA(UsdGeom.Imageable):

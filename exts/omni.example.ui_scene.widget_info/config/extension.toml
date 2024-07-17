@@ -15,6 +15,7 @@ icon = "data/icon.png"
 "omni.kit.viewport.utility" = {  }
 "omni.ui.scene" = {  }
 "omni.usd" = {  }
+"my_company.my_python_ui_extension" = {}  # Add as a dependency
 
 [[python.module]]
 name = "omni.example.ui_scene.widget_info"
@@ -28,4 +29,5 @@ args = [
 dependencies = [
     "omni.kit.renderer.core",
     "omni.kit.renderer.capture",
+    "my_company.my_python_ui_extension"  # Ensure it is included in test dependencies
 ]
