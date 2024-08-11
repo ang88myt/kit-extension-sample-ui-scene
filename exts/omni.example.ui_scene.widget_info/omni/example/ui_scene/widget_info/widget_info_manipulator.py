@@ -86,7 +86,7 @@ class WidgetInfoManipulator(sc.Manipulator):
         self._distance_to_top = 5
         self._thickness = 2
         self._radius_hovered = 20
-        self._data_service = DataService()
+       
         self.info_text = ""
         
     def on_startup(self, ext_id):
@@ -99,7 +99,9 @@ class WidgetInfoManipulator(sc.Manipulator):
         self._slider_subscription = None
         self._slider_model = None
         self._name_label = None
-
+        # if self._data_service:
+        #     self._data_service.close()  # Close any connections if applicable 
+       
     def _on_build_widgets(self):
         
         with ui.ZStack():
@@ -127,16 +129,6 @@ class WidgetInfoManipulator(sc.Manipulator):
 
                 # setup some model, just for simple demonstration here
                 self._slider_model = ui.SimpleFloatModel()
-
-                # ui.Spacer(height=10)
-                # with ui.HStack():
-                #     ui.Spacer(width=10)
-                #     ui.Label("scale", height=0, width=0)
-                #     ui.Spacer(width=5)
-                #     ui.FloatSlider(self._slider_model)
-                #     ui.Spacer(width=10)
-                # ui.Spacer(height=4)
-                # ui.Spacer()
 
         self.on_model_updated(None)
 
@@ -166,9 +158,9 @@ class WidgetInfoManipulator(sc.Manipulator):
         if selected_object:
             selected_object = selected_object.split('/')[-1]
 
-        if not selected_object:
-            self._root.visible = False
-            return
+            if not selected_object:
+                self._root.visible = False
+                return
 
         endpoint = f"pallet/{selected_object}/"
         print(f"Fetching stock info from endpoint: {endpoint}")
@@ -179,26 +171,21 @@ class WidgetInfoManipulator(sc.Manipulator):
             limited_items = list(stock_info.items())[:11]
             self.info_text = "\n".join([f"{key}: {value}" for key, value in limited_items])
             print(self.info_text)  # Assuming you want to use it somehow; replace this line accordingly.
+             # Update the shape display with the fetched info
+            if self._name_label:
+                self._name_label.text = self.info_text
 
-        # Update the shapes
-        position = self.model.get_as_floats(self.model.get_item("position"))
-        if position:
-            self._root.transform = sc.Matrix44.get_translation_matrix(*position)
-            self._root.visible = True
+            # Update the transforms
+            position = self.model.get_as_floats(self.model.get_item("position"))
+            if position:
+                self._root.transform = sc.Matrix44.get_translation_matrix(*position)
+                self._root.visible = True
+            else:
+                self._root.visible = False
+
         else:
             self._root.visible = False
-
-        # Update the slider
-        # def update_scale(prim_name, value):
-            # print(f"changing scale of {prim_name}, {value}")
-
-        # if self._slider_model:
-        #     self._slider_subscription = None
-        #     self._slider_model.as_float = 1.0
-        #     self._slider_subscription = self._slider_model.subscribe_value_changed_fn(
-        #         lambda m, p=self.model.get_item("name"): update_scale(p, m.as_float)
-        #     )
-
-        # Update the shape name
-        if self._name_label:
-            self._name_label.text = self.info_text
+            
+            
+            
+            
