@@ -14,7 +14,7 @@ import omni.ui as ui
 import carb
 from pxr import Gf
 from my_company.my_python_ui_extension.data_service import DataService  # Importing DataService from your extension
-
+import time
 
 class _ViewportLegacyDisableSelection:
     """Disables selection in the Viewport Legacy"""
@@ -80,28 +80,48 @@ class WidgetInfoManipulator(sc.Manipulator):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         
-        self.destroy()
+        # self.destroy()
         self._data_service = DataService()
-        self._radius = 2
-        self._distance_to_top = 5
-        self._thickness = 2
-        self._radius_hovered = 20
+        self._current_pallet_id = None
+        self._cached_stock_info = None
+        self._last_fetch_time = 0
+        self._fetch_delay = 1  # Minimum delay between fetches in second
+        self._name_label = None
+        # self._radius = 2
+        # self._distance_to_top = 5
+        # self._thickness = 2
+        # self._radius_hovered = 20
        
         self.info_text = ""
         
     def on_startup(self, ext_id):
         self._build_widgets()
-    
-   
-                    
+        self.destroy()
+
+    def on_shutdown(self):
+        # Destroy the manipulator and clean up resources
+        if hasattr(self, "_manipulator"):
+            self._manipulator.destroy()
+            self._manipulator = None  
+        self._is_active = False  # Mark the extension as inactive
+        if self._data_service:
+            self._data_service.close()  # Close the data service connection
+            self._data_service = None
+        self.destroy()  # Perform other cleanup operations
+
     def destroy(self):
+        # Cleanup resources
+        if self._data_service:
+            self._data_service.close()  # Assuming you have a close method to stop any ongoing operations
+            self._data_service = None
+
         self._root = None
         self._slider_subscription = None
         self._slider_model = None
         self._name_label = None
-        # if self._data_service:
-        #     self._data_service.close()  # Close any connections if applicable 
-       
+        self._current_pallet_id = None
+        self._cached_stock_info = None
+
     def _on_build_widgets(self):
         
         with ui.ZStack():
@@ -110,12 +130,12 @@ class WidgetInfoManipulator(sc.Manipulator):
                     "background_color": cl(0.2),
                     "border_color": cl(0.7),
                     "border_width": 2,
-                    "border_radius": 4,
+                    "border_radius": 8,
                 }
             )
-            with ui.VStack(style={"font_size": 30}):
+            with ui.VStack(style={"font_size": 25}):
                 ui.Spacer(height=4)
-                with ui.ZStack(style={"margin": 1}, height=30):
+                with ui.ZStack(style={"margin": 4}, height=30):
                     ui.Rectangle(
                         style={
                             "background_color": cl(0.0),
@@ -125,18 +145,18 @@ class WidgetInfoManipulator(sc.Manipulator):
                     ui.Label("Stock Information", height=0, alignment=ui.Alignment.CENTER)
 
                 ui.Spacer(height=10)
-                self._name_label = ui.Label("", height=0, alignment=ui.Alignment.LEFT)
+                self._name_label = ui.Label("", height=0, alignment=ui.Alignment.LEFT, style={"margin_right": 20})
 
                 # setup some model, just for simple demonstration here
                 self._slider_model = ui.SimpleFloatModel()
 
-        self.on_model_updated(None)
+        # self.on_model_updated(None)
 
         # Additional gesture that prevents Viewport Legacy selection
         self._widget.gestures += [_DragGesture()]
 
     def on_build(self):
-        self.endpoint_field = "UINT0000036621"
+        # self.endpoint_field = "UINT0000036621"
         
         """Called when the model is chenged and rebuilds the whole slider"""
         self._root = sc.Transform(visible=False)
@@ -147,6 +167,64 @@ class WidgetInfoManipulator(sc.Manipulator):
                     with sc.Transform(look_at=sc.Transform.LookAt.CAMERA):
                         self._widget = sc.Widget(850, 450, update_policy=sc.Widget.UpdatePolicy.ON_MOUSE_HOVERED)
                         self._widget.frame.set_build_fn(self._on_build_widgets)
+
+    # def on_model_updated(self, _): #Backup Code-working
+    #     # if we don't have selection then show nothing
+    #     if not self.model or not self.model.get_item("name"):
+    #         self._root.visible = False
+    #         return
+
+    #     selected_object = self.model.get_item("name")
+    #     if selected_object:
+    #         selected_object = selected_object.split('/')[-1]
+
+    #         if not selected_object:
+    #             self._root.visible = False
+    #             return
+
+    #     endpoint = f"pallet/{selected_object}/"
+    #     print(f"Fetching stock info from endpoint: {endpoint}")
+
+    #     stock_info = self._data_service.fetch_stock_info(endpoint)
+
+    #     if stock_info:
+    #         # Access the inventory data if it exists
+    #         inventory = stock_info.get("inventory", {})
+
+    #         # Mapping of the fields to display
+    #         fields_to_display = {
+    #             "Owner": inventory.get("Owner"),
+    #             "Warehouse Code": inventory.get("Warehouse Code"),
+    #             "Lot Number": inventory.get("Lot Number"),
+    #             "Floor No": inventory.get("Floor No"),
+    #             "Quantity on Hand in Loose": inventory.get("Quantity on Hand in Loose"),
+    #             "Location": inventory.get("Location"),
+    #             "Description1": inventory.get("Description1"),
+    #             "Expiry Date": inventory.get("Expiry Date"),
+    #             "Pallet Number": inventory.get("Pallet Number"),
+    #             "MANUFACTURING DATE": inventory.get("MANUFACTURING DATE"),
+    #             "Product Shelf Life": inventory.get("Product Shelf Life"),
+    #             "Balance Shelf Life to Expiry (days)": inventory.get("Balance Shelf Life to Expiry (days)")
+    #         }
+
+    #         # Creating the display text with only the specified fields
+    #         self.info_text = "\n".join([f"{key}: {value}" for key, value in fields_to_display.items() if value is not None])
+    #         print(self.info_text)  # Assuming you want to use it somehow; replace this line accordingly.
+
+    #         # Update the shape display with the fetched info
+    #         if self._name_label:
+    #             self._name_label.text = self.info_text
+
+    #         # Update the transforms
+    #         position = self.model.get_as_floats(self.model.get_item("position"))
+    #         if position:
+    #             self._root.transform = sc.Matrix44.get_translation_matrix(*position)
+    #             self._root.visible = True
+    #         else:
+    #             self._root.visible = False
+
+    #     else:
+    #         self._root.visible = False
 
     def on_model_updated(self, _):
         # if we don't have selection then show nothing
@@ -162,16 +240,40 @@ class WidgetInfoManipulator(sc.Manipulator):
                 self._root.visible = False
                 return
 
-        endpoint = f"pallet/{selected_object}/"
-        print(f"Fetching stock info from endpoint: {endpoint}")
+        current_time = time.time()
+        if selected_object != self._current_pallet_id or (current_time - self._last_fetch_time) > self._fetch_delay:
+            self._current_pallet_id = selected_object
+            self._last_fetch_time = current_time
+            self._fetch_and_cache_stock_info()
 
-        stock_info = self._data_service.fetch_stock_info(endpoint)
+        # Now use the cached stock info
+        stock_info = self._cached_stock_info
 
         if stock_info:
-            limited_items = list(stock_info.items())[:11]
-            self.info_text = "\n".join([f"{key}: {value}" for key, value in limited_items])
+            # Access the inventory data if it exists
+            inventory = stock_info.get("inventory", {})
+
+            # Mapping of the fields to display
+            fields_to_display = {
+                "Owner": inventory.get("Owner"),
+                "Warehouse Code": inventory.get("Warehouse Code"),
+                "Lot Number": inventory.get("Lot Number"),
+                "Floor No": inventory.get("Floor No"),
+                "Quantity on Hand in Loose": inventory.get("Quantity on Hand in Loose"),
+                "Location": inventory.get("Location"),
+                "Description1": inventory.get("Description1"),
+                "Expiry Date": inventory.get("Expiry Date"),
+                "Pallet Number": inventory.get("Pallet Number"),
+                "MANUFACTURING DATE": inventory.get("MANUFACTURING DATE"),
+                "Product Shelf Life": inventory.get("Product Shelf Life"),
+                "Balance Shelf Life to Expiry (days)": inventory.get("Balance Shelf Life to Expiry (days)")
+            }
+
+            # Creating the display text with only the specified fields
+            self.info_text = "\n".join([f"{key}: {value}" for key, value in fields_to_display.items() if value is not None])
             print(self.info_text)  # Assuming you want to use it somehow; replace this line accordingly.
-             # Update the shape display with the fetched info
+
+            # Update the shape display with the fetched info
             if self._name_label:
                 self._name_label.text = self.info_text
 
@@ -185,7 +287,10 @@ class WidgetInfoManipulator(sc.Manipulator):
 
         else:
             self._root.visible = False
-            
-            
-            
-            
+
+    def _fetch_and_cache_stock_info(self):
+        """Fetch and cache stock information for the current pallet ID."""
+        if self._current_pallet_id:
+            endpoint = f"pallet/{self._current_pallet_id}/"
+            print(f"Fetching stock info from endpoint: {endpoint}")
+            self._cached_stock_info = self._data_service.fetch_stock_info(endpoint)
