@@ -8,7 +8,7 @@
 #
 __all__ = ["WidgetInfoScene"]
 
-import omni.ui as ui
+# import omni.ui as ui
 from omni.ui import scene as sc
 
 from .widget_info_model import WidgetInfoModel
