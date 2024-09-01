@@ -390,7 +390,7 @@ class WidgetInfoManipulator(sc.Manipulator):
                     "border_radius": 8,
                 }
             )
-            with ui.VStack(style={"font_size": 30}):
+            with ui.VStack(style={"font_size": 25}):
                 ui.Spacer(height=4)
                 with ui.ZStack(style={"margin": 4}, height=30):
                     ui.Rectangle(
@@ -411,9 +411,9 @@ class WidgetInfoManipulator(sc.Manipulator):
         self._root = sc.Transform(visible=False)
         with self._root:
             with sc.Transform(scale_to=sc.Space.SCREEN):
-                with sc.Transform(transform=sc.Matrix44.get_translation_matrix(600, 100, 0)):
+                with sc.Transform(transform=sc.Matrix44.get_translation_matrix(-400, 100, 0)):
                     with sc.Transform(look_at=sc.Transform.LookAt.CAMERA):
-                        self._widget = sc.Widget(980, 600, update_policy=sc.Widget.UpdatePolicy.ON_MOUSE_HOVERED)
+                        self._widget = sc.Widget(800,500, update_policy=sc.Widget.UpdatePolicy.ON_MOUSE_HOVERED)
                         self._widget.frame.set_build_fn(self._on_build_widgets)
 
     def on_model_updated(self, _):
