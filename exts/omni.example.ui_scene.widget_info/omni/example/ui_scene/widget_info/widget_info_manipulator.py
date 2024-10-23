@@ -390,7 +390,7 @@ class WidgetInfoManipulator(sc.Manipulator):
                     "border_radius": 8,
                 }
             )
-            with ui.VStack(style={"font_size": 42}):
+            with ui.VStack(style={"font_size": 30}):
                 ui.Spacer(height=4)
                 with ui.ZStack(style={"margin": 4}, height=30):
                     ui.Rectangle(
@@ -413,7 +413,7 @@ class WidgetInfoManipulator(sc.Manipulator):
             with sc.Transform(scale_to=sc.Space.SCREEN):
                 with sc.Transform(transform=sc.Matrix44.get_translation_matrix(-800, 300, 0)):
                     with sc.Transform(look_at=sc.Transform.LookAt.CAMERA):
-                        self._widget = sc.Widget(1300,850, update_policy=sc.Widget.UpdatePolicy.ON_MOUSE_HOVERED)
+                        self._widget = sc.Widget(950,600, update_policy=sc.Widget.UpdatePolicy.ON_MOUSE_HOVERED)
                         self._widget.frame.set_build_fn(self._on_build_widgets)
 
     def on_model_updated(self, _):
@@ -438,21 +438,21 @@ class WidgetInfoManipulator(sc.Manipulator):
         if stock_info:
             inventory = stock_info.get("inventory", {})
             fields_to_display = {
-                " Owner": inventory.get("Owner"),
-                " Warehouse Code": inventory.get("Warehouse Code"),
-                " Lot Number": inventory.get("Lot Number"),
-                " Floor No": inventory.get("Floor No"),
-                " Quantity on Hand in Loose": inventory.get("Quantity on Hand in Loose"),
-                " Location": inventory.get("Location"),
-                " Description1": inventory.get("Description1"),
-                " Expiry Date": inventory.get("Expiry Date"),
-                " Pallet Number": inventory.get("Pallet Number"),
-                " MANUFACTURING DATE": inventory.get("MANUFACTURING DATE"),
-                " Product Shelf Life": inventory.get("Product Shelf Life"),
-                " Balance Shelf Life to Expiry (days)": inventory.get("Balance Shelf Life to Expiry (days)"),
-                " Pallet Denomination": inventory.get("Pallet Denomination"),
-                " Inbound Container No": inventory.get("Inbound Container No"),
-                " Unit of Measure Code": inventory.get("Unit of Measure Code"),
+                "  Owner": inventory.get("Owner"),
+                "  Warehouse Code": inventory.get("Warehouse Code"),
+                "  Lot Number": inventory.get("Lot Number"),
+                "  Floor No": inventory.get("Floor No"),
+                "  Quantity on Hand in Loose": inventory.get("Quantity on Hand in Loose"),
+                "  Location": inventory.get("Location"),
+                "  Description1": inventory.get("Description1"),
+                "  Expiry Date": inventory.get("Expiry Date"),
+                "  Pallet Number": inventory.get("Pallet Number"),
+                "  MANUFACTURING DATE": inventory.get("MANUFACTURING DATE"),
+                "  Product Shelf Life": inventory.get("Product Shelf Life"),
+                "  Balance Shelf Life to Expiry (days)": inventory.get("Balance Shelf Life to Expiry (days)"),
+                "  Pallet Denomination": inventory.get("Pallet Denomination"),
+                "  Stock Status Code": inventory.get("Stock Status Code"),
+                "  Product Group": inventory.get("Product Group"),
             }
 
             self.info_text = "\n".join(
