@@ -143,7 +143,9 @@ class WidgetInfoManipulator(sc.Manipulator):
 
         selected_object = self.model.get_item("name")
         if selected_object:
+            
             selected_object = selected_object.split('/')[-1]
+            selected_object = selected_object.replace('_', '')
             if not selected_object:
                 self._root.visible = False
                 return
