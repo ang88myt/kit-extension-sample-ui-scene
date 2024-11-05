@@ -411,19 +411,22 @@ class WidgetInfoManipulator(sc.Manipulator):
         self._root = sc.Transform(visible=False)
         with self._root:
             with sc.Transform(scale_to=sc.Space.SCREEN):
-                with sc.Transform(transform=sc.Matrix44.get_translation_matrix(-800, 300, 0)):
+                with sc.Transform(transform=sc.Matrix44.get_translation_matrix(-100, 300, 0)):
                     with sc.Transform(look_at=sc.Transform.LookAt.CAMERA):
                         self._widget = sc.Widget(950,600, update_policy=sc.Widget.UpdatePolicy.ON_MOUSE_HOVERED)
                         self._widget.frame.set_build_fn(self._on_build_widgets)
 
     def on_model_updated(self, _):
+        logger.info("test1123")
         if not self.model or not self.model.get_item("name"):
+            
             self._root.visible = False
             return
 
         selected_object = self.model.get_item("name")
         if selected_object:
             selected_object = selected_object.split('/')[-1]
+            selected_object = selected_object.replace("hpc_", "").replace("food_", "")
             if not selected_object:
                 self._root.visible = False
                 return
