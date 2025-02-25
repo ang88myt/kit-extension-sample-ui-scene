@@ -117,10 +117,10 @@ class WidgetInfoManipulator(sc.Manipulator):
         self._current_pallet_id = None
         self._cached_stock_info = None
         self._last_fetch_time = 0
-        self._fetch_delay = 1  # Minimum delay between fetches in second
+        self._fetch_delay = 1  # Minimum delay between fetches in seconds
         self._name_label = None
         self.info_text = ""
-        self.info_dict = {}
+        self.ui_container = None  # ✅ Store UI container reference
 
     def on_startup(self, ext_id):
         self._build_widgets()
@@ -148,55 +148,11 @@ class WidgetInfoManipulator(sc.Manipulator):
         self._cached_stock_info = None
 
     def _on_build_widgets(self):
+        """Build the UI Widgets and store a reference to the main container."""
 
-        if self.info_text and isinstance(self.info_text, str):
-            try:
-                # ✅ Handle cases where ": " might not exist on a line (avoiding ValueError)
-                info_dict = {k.strip(): v.strip() for line in self.info_text.split("\n") if ": " in line for k, v in
-                             [line.split(": ", 1)]}
-            except Exception as e:
-                carb.log_error(f"❌ Error parsing info_text: {e}")
-                info_dict = {}  # Fallback to empty dict if parsing fails
-        else:
-            carb.log_warn("⚠ info_text is empty or not a string!")
-            info_dict = {}
-
-        # ✅ Extract information safely, defaulting to "N/A" if missing
-        pallet_id = info_dict.get("Pallet ID", "N/A")
-        product_sku = info_dict.get("Product", "N/A")
-        owner = info_dict.get("Owner", "N/A")
-        loose_item_quantity = info_dict.get("Loose Item Quantity", "N/A")
-        product_description = info_dict.get("Product Description", "N/A")
-        expiry_date = info_dict.get("Expiry Date", "N/A")
-        days_to_expire = info_dict.get("Days to Expiry", "N/A")
-        stock_status_code = info_dict.get("Stock Status Code", "N/A")
-        product_group = info_dict.get("Product Group", "N/A")
-
-        # ✅ Ensure expiry_date is valid before formatting
-        try:
-            if expiry_date and expiry_date != "N/A":
-                expiry_date = datetime.strptime(expiry_date, "%Y-%m-%dT%H:%M:%S").strftime("%d-%m-%Y")
-            else:
-                expiry_date = "N/A"
-        except ValueError:
-            carb.log_warn(f"⚠ Invalid expiry date format: {expiry_date}")
-            expiry_date = "N/A"
-
-
-        # ✅ Correct product group mapping
-        if product_group == "HPC":
-            product_group = "Non-Consumables"
-            product_image = str(EXTENSION_FOLDER_PATH / "ic_outline-miscellaneous-services.svg")
-        else:
-            product_group = "Consumables"
-            product_image = str(EXTENSION_FOLDER_PATH / "mdi_food.svg")
-        # print(product_group)
-        # print(product_image)
-        # print(pallet_id)
-        # ✅ Log extracted information
-        # carb.log_info(
-        #     f"✔ Processed Pallet: {pallet_id}, Product: {product_sku}, Group: {product_group}, Expiry: {expiry_date}")
-
+        # ✅ Clear previous UI elements
+        if self.ui_container:
+            self.ui_container.clear()
 
         with ui.ZStack():
             ui.Rectangle(
@@ -240,13 +196,13 @@ class WidgetInfoManipulator(sc.Manipulator):
                                 with ui.HStack(spacing=6,
                                                alignment=ui.Alignment.LEFT_CENTER):  # ✅ Center align Image & Labels
 
-                                    ui.Image(product_image, width=40, height=40)
+                                    self.product_image_widget = ui.Image("", width=60, height=60)
 
                                     with ui.VStack(height=0, alignment=ui.Alignment.LEFT_CENTER):  # ✅ Center align Labels
                                         ui.Label("Product Group", name="header",
                                                  style=pallet_info_style["Label::header"],
                                                  alignment=ui.Alignment.LEFT_CENTER)
-                                        ui.Label(product_group, name="title", style=pallet_info_style["Label::title"],
+                                        self.product_group_widget = ui.Label("", name="title", style=pallet_info_style["Label::title"],
                                                  alignment=ui.Alignment.LEFT_CENTER)
 
                                 # ✅ Pallet ID and SKU Layout (Center aligned)
@@ -257,10 +213,10 @@ class WidgetInfoManipulator(sc.Manipulator):
                                              width=ui.Fraction(2), alignment=ui.Alignment.LEFT_CENTER)
 
                                 with ui.HStack(spacing=65, alignment=ui.Alignment.LEFT_CENTER):
-                                    ui.Label(pallet_id, name="title", style=pallet_info_style["Label::title"],
+                                    self.pallet_id_widget = ui.Label("", name="title", style=pallet_info_style["Label::title"],
                                              width=ui.Fraction(1), alignment=ui.Alignment.LEFT_CENTER)
                                     # print(pallet_id)
-                                    ui.Label(product_sku, name="title", style=pallet_info_style["Label::title"],
+                                    self.product_sku_widget = ui.Label("", name="title", style=pallet_info_style["Label::title"],
                                              width=ui.Fraction(1), alignment=ui.Alignment.LEFT_CENTER)
                                     # print(product_sku)
                                 ui.Spacer(height=20)  # ✅ Reduced space for compactness
@@ -274,8 +230,9 @@ class WidgetInfoManipulator(sc.Manipulator):
                                 # ✅ Product Description Section (Center Aligned)
                                 ui.Label("Product Description", name="header", style=pallet_info_style["Label::header"],
                                          alignment=ui.Alignment.LEFT_CENTER)
-                                ui.Label(
-                                    product_description,
+
+                                self.product_description_widget = ui.Label(
+                                    "",
                                     word_wrap=True,
                                     alignment=ui.Alignment.LEFT_CENTER,  # ✅ Ensures text is centered
                                     width=410  # ✅ Ensures text wraps correctly
@@ -284,7 +241,7 @@ class WidgetInfoManipulator(sc.Manipulator):
                                     ui.Label("Owner", name="header",
                                              style=pallet_info_style["Label::header"],
                                              alignment=ui.Alignment.LEFT_CENTER)
-                                    ui.Label(owner, name="header",
+                                    self.owner_widget = ui.Label("", name="header",
                                              style=pallet_info_style["Label::title"],
                                              alignment=ui.Alignment.LEFT_CENTER)
                                     with ui.HStack():
@@ -296,11 +253,11 @@ class WidgetInfoManipulator(sc.Manipulator):
                                                  alignment=ui.Alignment.LEFT_CENTER)
                                     with ui.VStack():
                                         with ui.HStack():
-                                            ui.Label(stock_status_code, name="title",
+                                            self.stock_status_widget = ui.Label("", name="title",
                                                  style=pallet_info_style["Label::title"],
                                                  alignment=ui.Alignment.LEFT_CENTER)
 
-                                            ui.Label(loose_item_quantity, name="title",
+                                            self.loose_item_widget = ui.Label("", name="title",
                                                      style=pallet_info_style["Label::title"],
                                                      alignment=ui.Alignment.LEFT_CENTER)
                                         with ui.HStack():
@@ -313,22 +270,75 @@ class WidgetInfoManipulator(sc.Manipulator):
                                                      alignment=ui.Alignment.LEFT_CENTER)
                                         with ui.VStack():
                                             with ui.HStack():
-                                                ui.Label(expiry_date, name="title",
+                                                self.expiry_date_widget = ui.Label("", name="title",
                                                          style=pallet_info_style["Label::title"],
                                                          alignment=ui.Alignment.LEFT_CENTER)
 
-                                                ui.Label(days_to_expire, name="title",
+                                                self.days_to_expiry_widget = ui.Label("", name="title",
                                                          style=pallet_info_style["Label::title"],
                                                      alignment=ui.Alignment.LEFT_CENTER)
 
                 # self._name_label = ui.Label("", height=0, alignment=ui.Alignment.LEFT,
                 #                             style=pallet_info_style["Label::title"])
 
-                self._slider_model = ui.SimpleFloatModel()
+                # self._slider_model = ui.SimpleFloatModel()
 
         self.on_model_updated(None)
         self._widget.gestures += [_DragGesture()]
 
+    def update_ui(self):
+        """Update UI elements dynamically when stock info updates."""
+        if not self.ui_container:
+            return
+
+        # ✅ Check cached stock info
+        stock_info = self._cached_stock_info
+        if not stock_info:
+            return
+
+        inventory = stock_info.get("inventory", {})
+        pallet_id = inventory.get("Pallet Number", "N/A")
+        product_sku = inventory.get("Product", "N/A")
+        owner = inventory.get("Owner", "N/A")
+        product_description = inventory.get("Description1", "N/A")
+        expiry_date = inventory.get("Expiry Date", "N/A")
+        days_to_expiry = inventory.get("Balance Shelf Life to Expiry (days)", "N/A")
+        stock_status_code = inventory.get("Stock Status Code", "N/A")
+        product_group = inventory.get("Product Group", "N/A")
+        loose_item_quantity = inventory.get("Loose Item Quantity")
+
+        # ✅ Format expiry date properly
+        expiry_date = inventory.get("Expiry Date", "N/A")
+        try:
+            if expiry_date and expiry_date != "N/A":
+                expiry_date = datetime.strptime(expiry_date, "%Y-%m-%dT%H:%M:%S").strftime("%d-%m-%Y")
+            else:
+                expiry_date = "N/A"
+        except ValueError:
+            expiry_date = "N/A"
+
+        # ✅ Correct product group mapping
+        if product_group == "HPC":
+            product_group_label = "Non-Consumables"
+            product_image_path = str(EXTENSION_FOLDER_PATH / "ic_outline-miscellaneous-services.svg")
+        else:
+            product_group_label = "Consumables"
+            product_image_path = str(EXTENSION_FOLDER_PATH / "mdi_food.svg")
+
+        # ✅ Update UI elements
+        self.product_image_widget.source_url = str(product_image_path)
+        self.product_group_widget.text = str(product_group_label)
+        self.pallet_id_widget.text = str(pallet_id)
+        self.product_sku_widget.text = str(product_sku)
+        self.product_description_widget.text = str(product_description)
+        self.owner_widget.text = str(owner)
+        self.stock_status_widget.text = str(stock_status_code)
+        self.loose_item_widget.text = str(loose_item_quantity)
+        self.expiry_date_widget.text = str(expiry_date)
+        self.days_to_expiry_widget.text = str(days_to_expiry)
+
+        # ✅ Trigger UI refresh
+        # self.ui_container.rebuild()
     def on_build(self):
         self._root = sc.Transform(visible=False)
         with self._root:
@@ -345,7 +355,6 @@ class WidgetInfoManipulator(sc.Manipulator):
             self._root.visible = False
             return
 
-        # ✅ Extract selected object and sanitize its name
         selected_object = self.model.get_item("name")
         if selected_object:
             selected_object = selected_object.split('/')[-1].replace("hpc_", "").replace("food_", "").replace("_", "")
@@ -353,7 +362,6 @@ class WidgetInfoManipulator(sc.Manipulator):
                 self._root.visible = False
                 return
 
-        # ✅ Fetch stock info if pallet ID is new or cache expired
         current_time = time.time()
         if selected_object != self._current_pallet_id or (current_time - self._last_fetch_time) > self._fetch_delay:
             self._current_pallet_id = selected_object
@@ -361,27 +369,9 @@ class WidgetInfoManipulator(sc.Manipulator):
             self._fetch_and_cache_stock_info()
 
         stock_info = self._cached_stock_info
+        if stock_info:
+            self.update_ui()
 
-        # ✅ Extract inventory details
-        inventory = stock_info.get("inventory", {})
-        fields_to_display = {
-            "Product": inventory.get("Product"),
-            "Pallet ID": inventory.get("Pallet Number"),
-            "Loose Item Quantity": inventory.get("Quantity on Hand in Loose"),
-            "Product Description": inventory.get("Description1"),
-            "Expiry Date": inventory.get("Expiry Date"),
-            "Owner": inventory.get("Owner"),
-            "Days to Expiry": inventory.get("Balance Shelf Life to Expiry (days)"),
-            "Stock Status Code": inventory.get("Stock Status Code"),
-            "Product Group": inventory.get("Product Group"),
-        }
-        # print(fields_to_display["Pallet ID"])
-        # ✅ Ensure all values are strings (avoiding NoneType issues)
-        self.info_text = "\n".join(
-            [f"{key}: {value}" for key, value in fields_to_display.items() if value is not None]
-        )
-
-        # ✅ Handle position transformation safely
         position = self.model.get_as_floats(self.model.get_item("position"))
         if position and len(position) == 3:
             self._root.transform = sc.Matrix44.get_translation_matrix(*position)
