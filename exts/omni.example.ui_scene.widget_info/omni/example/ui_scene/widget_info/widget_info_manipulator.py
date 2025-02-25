@@ -375,7 +375,7 @@ class WidgetInfoManipulator(sc.Manipulator):
             "Stock Status Code": inventory.get("Stock Status Code"),
             "Product Group": inventory.get("Product Group"),
         }
-        print(fields_to_display["Pallet ID"])
+        # print(fields_to_display["Pallet ID"])
         # ✅ Ensure all values are strings (avoiding NoneType issues)
         self.info_text = "\n".join(
             [f"{key}: {value}" for key, value in fields_to_display.items() if value is not None]
