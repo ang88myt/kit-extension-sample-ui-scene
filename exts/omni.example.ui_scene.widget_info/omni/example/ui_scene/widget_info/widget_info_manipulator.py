@@ -7,6 +7,7 @@ import omni.ui as ui
 import carb
 from pxr import Gf
 from my_company.my_python_ui_extension.data_service import DataService  # Importing DataService from your extension
+
 import time
 # import logging
 # import omni.kit.app
@@ -34,8 +35,8 @@ cl.section_border = cl(1.0, 1.0, 1.0, 0.2)
 
 fl.section_padding = 6
 fl.section_spacing = 4
-fl.label_font_size = 18
-fl.value_font_size = 22
+fl.label_font_size = 25
+fl.value_font_size = 30
 fl.border_radius = 4
 # url.food_icon = f"{EXTENSION_FOLDER_PATH}/icons/mdi_food.svg"
 # Style Dictionary
@@ -117,7 +118,7 @@ class WidgetInfoManipulator(sc.Manipulator):
         self._current_pallet_id = None
         self._cached_stock_info = None
         self._last_fetch_time = 0
-        self._fetch_delay = 1  # Minimum delay between fetches in seconds
+        self._fetch_delay = 0.1  # Minimum delay between fetches in seconds
         self._name_label = None
         self.info_text = ""
         self.ui_container = None  # ✅ Store UI container reference
@@ -183,7 +184,7 @@ class WidgetInfoManipulator(sc.Manipulator):
                             ui.Rectangle(
                                 alignment=ui.Alignment.CENTER,
                                 # width=700,
-                                height=200,
+                                height=250,
                                 style={
                                     "background_color": cl(0.1),
                                     "border_color": cl(0.7),
@@ -191,7 +192,7 @@ class WidgetInfoManipulator(sc.Manipulator):
                                     "border_radius": 12,
                                 }
                             )
-                            with ui.VStack(height=0, spacing=6,
+                            with ui.VStack(height=0, spacing=10,
                                            alignment=ui.Alignment.LEFT_CENTER):  # ✅ Adjusted to full center alignment
                                 with ui.HStack(spacing=6,
                                                alignment=ui.Alignment.LEFT_CENTER):  # ✅ Center align Image & Labels
@@ -238,45 +239,49 @@ class WidgetInfoManipulator(sc.Manipulator):
                                     width=410  # ✅ Ensures text wraps correctly
                                 )
                                 with ui.VStack():
+                                    # Owner Section
                                     ui.Label("Owner", name="header",
                                              style=pallet_info_style["Label::header"],
-                                             alignment=ui.Alignment.LEFT_CENTER)
-                                    self.owner_widget = ui.Label("", name="header",
-                                             style=pallet_info_style["Label::title"],
-                                             alignment=ui.Alignment.LEFT_CENTER)
+                                             alignment=ui.Alignment.LEFT)
+                                    self.owner_widget = ui.Label("", name="title",
+                                                                 style=pallet_info_style["Label::title"],
+                                                                 alignment=ui.Alignment.LEFT)
+
+                                    # Stock Status Code and Loose Item Quantity Headers
                                     with ui.HStack():
                                         ui.Label("Stock Status Code", name="header",
                                                  style=pallet_info_style["Label::header"],
-                                                 alignment=ui.Alignment.LEFT_CENTER)
+                                                 alignment=ui.Alignment.LEFT)
                                         ui.Label("Loose Item Quantity", name="header",
                                                  style=pallet_info_style["Label::header"],
-                                                 alignment=ui.Alignment.LEFT_CENTER)
-                                    with ui.VStack():
-                                        with ui.HStack():
-                                            self.stock_status_widget = ui.Label("", name="title",
-                                                 style=pallet_info_style["Label::title"],
-                                                 alignment=ui.Alignment.LEFT_CENTER)
+                                                 alignment=ui.Alignment.LEFT)
 
-                                            self.loose_item_widget = ui.Label("", name="title",
-                                                     style=pallet_info_style["Label::title"],
-                                                     alignment=ui.Alignment.LEFT_CENTER)
-                                        with ui.HStack():
-                                            ui.Label("Expiry Date", name="header",
+                                    # Stock Status Code and Loose Item Quantity Values
+                                    with ui.HStack():
+                                        self.stock_status_widget = ui.Label("", name="title",
+                                                                            style=pallet_info_style["Label::title"],
+                                                                            alignment=ui.Alignment.LEFT)
+                                        self.loose_item_widget = ui.Label("", name="title",
+                                                                          style=pallet_info_style["Label::title"],
+                                                                          alignment=ui.Alignment.LEFT)
+
+                                    # Expiry Date and Day to Expire Headers
+                                    with ui.HStack():
+                                        ui.Label("Expiry Date", name="header",
                                                  style=pallet_info_style["Label::header"],
-                                                 alignment=ui.Alignment.LEFT_CENTER)
+                                                 alignment=ui.Alignment.LEFT)
+                                        ui.Label("Day to Expire", name="header",
+                                                 style=pallet_info_style["Label::header"],
+                                                 alignment=ui.Alignment.LEFT)
 
-                                            ui.Label("Day to Expire", name="header",
-                                                     style=pallet_info_style["Label::header"],
-                                                     alignment=ui.Alignment.LEFT_CENTER)
-                                        with ui.VStack():
-                                            with ui.HStack():
-                                                self.expiry_date_widget = ui.Label("", name="title",
-                                                         style=pallet_info_style["Label::title"],
-                                                         alignment=ui.Alignment.LEFT_CENTER)
-
-                                                self.days_to_expiry_widget = ui.Label("", name="title",
-                                                         style=pallet_info_style["Label::title"],
-                                                     alignment=ui.Alignment.LEFT_CENTER)
+                                    # Expiry Date and Day to Expire Values
+                                    with ui.HStack():
+                                        self.expiry_date_widget = ui.Label("", name="title",
+                                                                           style=pallet_info_style["Label::title"],
+                                                                           alignment=ui.Alignment.LEFT)
+                                        self.days_to_expiry_widget = ui.Label("", name="title",
+                                                                              style=pallet_info_style["Label::title"],
+                                                                              alignment=ui.Alignment.LEFT)
 
                 # self._name_label = ui.Label("", height=0, alignment=ui.Alignment.LEFT,
                 #                             style=pallet_info_style["Label::title"])
@@ -301,7 +306,6 @@ class WidgetInfoManipulator(sc.Manipulator):
         product_sku = inventory.get("Product", "N/A")
         owner = inventory.get("Owner", "N/A")
         product_description = inventory.get("Description1", "N/A")
-        expiry_date = inventory.get("Expiry Date", "N/A")
         days_to_expiry = inventory.get("Balance Shelf Life to Expiry (days)", "N/A")
         stock_status_code = inventory.get("Stock Status Code", "N/A")
         product_group = inventory.get("Product Group", "N/A")
@@ -326,16 +330,16 @@ class WidgetInfoManipulator(sc.Manipulator):
             product_image_path = str(EXTENSION_FOLDER_PATH / "mdi_food.svg")
 
         # ✅ Update UI elements
-        self.product_image_widget.source_url = str(product_image_path)
-        self.product_group_widget.text = str(product_group_label)
-        self.pallet_id_widget.text = str(pallet_id)
-        self.product_sku_widget.text = str(product_sku)
-        self.product_description_widget.text = str(product_description)
-        self.owner_widget.text = str(owner)
-        self.stock_status_widget.text = str(stock_status_code)
-        self.loose_item_widget.text = str(loose_item_quantity)
-        self.expiry_date_widget.text = str(expiry_date)
-        self.days_to_expiry_widget.text = str(days_to_expiry)
+        self.product_image_widget.source_url = str(product_image_path).replace(" ","")
+        self.product_group_widget.text = str(product_group_label).replace(" ","")
+        self.pallet_id_widget.text = str(pallet_id).replace(" ","")
+        self.product_sku_widget.text = str(product_sku).replace(" ","")
+        self.product_description_widget.text = str(product_description).replace(" ","")
+        self.owner_widget.text = str(owner).replace(" ","")
+        self.stock_status_widget.text = str(stock_status_code).replace(" ","")
+        self.loose_item_widget.text = str(loose_item_quantity).replace(" ","")
+        self.expiry_date_widget.text = str(expiry_date).replace(" ","")
+        self.days_to_expiry_widget.text = str(days_to_expiry).replace(" ","")
 
         # ✅ Trigger UI refresh
         # self.ui_container.rebuild()
@@ -345,7 +349,7 @@ class WidgetInfoManipulator(sc.Manipulator):
             with sc.Transform(scale_to=sc.Space.SCREEN):
                 with sc.Transform(transform=sc.Matrix44.get_translation_matrix(-100, 300, 0)):
                     with sc.Transform(look_at=sc.Transform.LookAt.CAMERA):
-                        self._widget = sc.Widget(450,750, update_policy=sc.Widget.UpdatePolicy.ON_MOUSE_HOVERED)
+                        self._widget = sc.Widget(550,900, update_policy=sc.Widget.UpdatePolicy.ON_MOUSE_HOVERED)
                         self._widget.frame.set_build_fn(self._on_build_widgets)
 
     def on_model_updated(self, _):
@@ -384,3 +388,6 @@ class WidgetInfoManipulator(sc.Manipulator):
             endpoint = f"pallet/{self._current_pallet_id}/"
             carb.log_info(f"Fetching stock info from endpoint: {endpoint}")
             self._cached_stock_info = self._data_service.fetch_stock_info(endpoint)
+
+    def test_print(self):
+        print("teseteeteast")
