@@ -312,10 +312,10 @@ class WidgetInfoManipulator(sc.Manipulator):
         loose_item_quantity = inventory.get("Quantity on Hand in Loose", "N/A")
 
         # ✅ Format expiry date properly
-        expiry_date = inventory.get("Expiry Date", "N/A")
+        expiry_date = str(inventory.get("Expiry Date", "N/A"))
         try:
             if expiry_date and expiry_date != "N/A":
-                expiry_date = datetime.strptime(expiry_date, "%Y-%m-%dT%H:%M:%S").strftime("%d-%m-%Y")
+                expiry_date = datetime.strptime(expiry_date, "%Y-%m-%dT%H:%M:%S").strptime("%d-%m-%Y")
             else:
                 expiry_date = "N/A"
         except ValueError:
