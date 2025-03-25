@@ -309,7 +309,7 @@ class WidgetInfoManipulator(sc.Manipulator):
         days_to_expiry = inventory.get("Balance Shelf Life to Expiry (days)", "N/A")
         stock_status_code = inventory.get("Stock Status Code", "N/A")
         product_group = inventory.get("Product Group", "N/A")
-        loose_item_quantity = inventory.get("Loose Item Quantity")
+        loose_item_quantity = inventory.get("Quantity on Hand in Loose", "N/A")
 
         # ✅ Format expiry date properly
         expiry_date = inventory.get("Expiry Date", "N/A")
